@@ -6,6 +6,11 @@
       <button @click="getLocPhoto()">Get loc photo</button>
       <img v-bind:src="this.response">
       <div id="myMap"></div>
+      <li v-for="marker in markers">
+        - <span class="message">{{marker.address}}</span><br>
+        at lat : <span class="author">{{marker.latitude}}</span>
+        at lng : <span class="date">{{marker.longitude}}</span>
+      </li>
     </div>
   </div>
 </template>
@@ -13,21 +18,21 @@
 <script>
 import Map from './Map.vue'
 import Navbar from './Navbar.vue'
+import $ from 'jquery'
 
 export default {
   data () {
     return {
-      address: '',
+      address: 'test',
       response: '',
-      markers: [],
+      markers: '',
       infoWindows: []
     }
   },
   methods: {
     getLoc() {
       var xmlHttp = new XMLHttpRequest();
-      xmlHttp.open("GET", "https://maps.googleapis.com/maps/api/geocode/json?address="+this.address+"&key=AIzaSyCUEEzTpu8BzuQ2te4yY0gBzvQ6ax7w_wA"
-, false);
+      xmlHttp.open("GET", "https://maps.googleapis.com/maps/api/geocode/json?address="+this.address+"&key=AIzaSyCUEEzTpu8BzuQ2te4yY0gBzvQ6ax7w_wA", false);
       xmlHttp.send();
       this.response = xmlHttp.response;
       this.response = JSON.parse(this.response);
@@ -49,64 +54,69 @@ export default {
 
       var imgUrl = "https://maps.googleapis.com/maps/api/streetview?size=200x150&location="+this.response.results[0].formatted_address+"&fov=120&heading=0&pitch=10&key=AIzaSyCUEEzTpu8BzuQ2te4yY0gBzvQ6ax7w_wA";
 
-      var infoWindow = new google.maps.InfoWindow({
-        content: this.response.results[0].formatted_address + '<br><img src="'+imgUrl+'">'
-      });
+      var infoWindow = new google.maps.InfoWindow();
+
+      var content = this.response.results[0].formatted_address + '<br><img src="'+imgUrl+'">';
 
       marker.addListener('click', function() {
+        infoWindow.close();
+        infoWindow.setContent(content);
         infoWindow.open(this.map, marker);
       });
-
-      // this.markers.push(marker);
-      // var index = this.markers.indexOf(marker);
-      
-      // this.infoWindows.push(new google.maps.InfoWindow({
-      //   content: this.response.results[0].formatted_address
-      // }));
-
-      // console.log(this.infoWindows);
     }
   },
   mounted: function() {
-    var uluru = {lat:48.709444, lng: 2.492176};
-
-    console.log("map: ", google.maps);
     this.map = new google.maps.Map(document.getElementById('myMap'), {
       center: {lat:48.709444, lng: 2.492176},
       scrollwheel: true,
       zoom: 14
     })
-    var marker = new google.maps.Marker({
-      position: uluru,
-      map: this.map,
-      title: 'Yerres'
-    });
-    var contentString = '<div id="content">'+
-      '<div id="siteNotice">'+
-      '</div>'+
-      '<h1 id="firstHeading" class="firstHeading">Uluru</h1>'+
-      '<div id="bodyContent">'+
-      '<p><b>Uluru</b>, also referred to as <b>Ayers Rock</b>, is a large ' +
-      'sandstone rock formation in the southern part of the '+
-      'Northern Territory, central Australia. It lies 335&#160;km (208&#160;mi) '+
-      'south west of the nearest large town, Alice Springs; 450&#160;km '+
-      '(280&#160;mi) by road. Kata Tjuta and Uluru are the two major '+
-      'features of the Uluru - Kata Tjuta National Park. Uluru is '+
-      'sacred to the Pitjantjatjara and Yankunytjatjara, the '+
-      'Aboriginal people of the area. It has many springs, waterholes, '+
-      'rock caves and ancient paintings. Uluru is listed as a World '+
-      'Heritage Site.</p>'+
-      '<p>Attribution: Uluru, <a href="https://en.wikipedia.org/w/index.php?title=Uluru&oldid=297882194">'+
-      'https://en.wikipedia.org/w/index.php?title=Uluru</a> '+
-      '(last visited June 22, 2009).</p>'+
-      '</div>'+
-      '</div>';
 
-    var infowindow = new google.maps.InfoWindow({
-      content: contentString
+    var marker = new google.maps.Marker({
+        map: this.map,
+        position: new google.maps.LatLng(40.72, -74)
     });
-    marker.addListener('click', function() {
-      infowindow.open(this.map, marker);
+
+    var infoWindow = new google.maps.InfoWindow;
+
+    this.$http.get('https://api.myjson.com/bins/11dq3r').then(response => {
+      this.markers = response.body;
+      console.log(response);
+
+      
+      Array.prototype.forEach.call(this.markers, (marker) => {
+        var id = marker.id;
+        var title = marker.title;
+        var address = marker.address;
+        var point = new google.maps.LatLng(
+          parseFloat(marker.latitude),
+          parseFloat(marker.longitude)
+        );
+
+        var infowincontent = document.createElement('div');
+        var strong = document.createElement('strong');
+        strong.textContent = title;
+        infowincontent.appendChild(strong);
+        infowincontent.appendChild(document.createElement('br'));
+        var text = document.createElement('text');
+        text.textContent = address
+        infowincontent.appendChild(text);
+
+        var marker = new google.maps.Marker({
+          position: point,
+          map: this.map
+        });
+
+        marker.addListener('click', function() {
+          infoWindow.setContent(infowincontent);
+          infoWindow.open(this.map, marker);
+        });
+
+        console.log("Id : "+id+", title : "+ title + ", address : "+address+", point : "+point);
+      });
+      
+    }, (response) => {
+      console.log('erreur');
     });
   },
   components: {
@@ -114,6 +124,7 @@ export default {
     Map
   }
 }
+
 </script>
 
 <style>
@@ -130,5 +141,4 @@ body {
   width: 100%;
   position: relative;
 }
-
 </style>

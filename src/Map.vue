@@ -1,4 +1,4 @@
-<template>
+<!--<template>
   <div class="app">
     <div id="myMap"></div>
   </div>
@@ -68,4 +68,4 @@ body, html {
   width: 100%;
   position: relative;
 }
-</style>
+</style>-->
