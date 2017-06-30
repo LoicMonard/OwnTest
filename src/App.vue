@@ -1,9 +1,9 @@
 <template>
   <div id="app">
     <div>
-      <input id="searchTextField" type="text" v-model="address">
+      <input id="searchTextField" type="text">
       <button @click="addMarker()">Get loc details</button>
-      <button @click="getLocPhoto()">Get loc photo</button>
+      <button @click="getLocPhoto()">Get loc photo</button> {{address}}
       <img v-bind:src="this.response">
       <div id="myMap"></div>
       <li v-for="marker in markers">
@@ -23,7 +23,7 @@ import $ from 'jquery'
 export default {
   data () {
     return {
-      address: 'test',
+      address: '',
       response: '',
       markers: '',
       infoWindows: []
@@ -31,6 +31,7 @@ export default {
   },
   methods: {
     getLoc() {
+      this.address = document.getElementById('searchTextField').value;
       var xmlHttp = new XMLHttpRequest();
       xmlHttp.open("GET", "https://maps.googleapis.com/maps/api/geocode/json?address="+this.address+"&key=AIzaSyCUEEzTpu8BzuQ2te4yY0gBzvQ6ax7w_wA", false);
       xmlHttp.send();
@@ -63,21 +64,42 @@ export default {
         infoWindow.setContent(content);
         infoWindow.open(this.map, marker);
       });
+
+      this.map.panTo(marker.getPosition());
+      this.map.setZoom(14);
+
+      marker.addListener('dblclick', function() {
+        this.map.panTo(this.getPosition());
+        this.map.setZoom(14);
+      });
     }
   },
   mounted: function() {
+    //MAP INIT
     this.map = new google.maps.Map(document.getElementById('myMap'), {
       center: {lat:48.709444, lng: 2.492176},
       scrollwheel: true,
       zoom: 14
     })
-
+    //MARKER INIT
     var marker = new google.maps.Marker({
         map: this.map,
         position: new google.maps.LatLng(40.72, -74)
     });
-
+    //INFOWINDOW INIT
     var infoWindow = new google.maps.InfoWindow;
+
+    //AUTOCOMPLETE INIT
+    var autocomplete;
+    
+    var input = document.getElementById('searchTextField');
+
+    var options = {
+      componentRestrictions: {'country':'fr'},
+      types: [("locality", "political", "geocode")] // (cities)
+    };
+
+    autocomplete = new google.maps.places.Autocomplete(input,options);
 
     this.$http.get('https://api.myjson.com/bins/11dq3r').then(response => {
       this.markers = response.body;
@@ -110,6 +132,11 @@ export default {
         marker.addListener('click', function() {
           infoWindow.setContent(infowincontent);
           infoWindow.open(this.map, marker);
+        });
+
+        marker.addListener('dblclick', function() {
+          this.map.panTo(this.getPosition());
+          this.map.setZoom(14);
         });
 
         console.log("Id : "+id+", title : "+ title + ", address : "+address+", point : "+point);
